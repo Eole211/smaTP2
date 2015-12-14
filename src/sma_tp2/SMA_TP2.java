@@ -19,10 +19,10 @@ public class SMA_TP2 {
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        AgentBuying ab = new AgentBuying(Travel.Destination.PARIS, 580);
+        AgentBuying ab = new AgentBuying(Travel.Destination.PARIS, 550);
         AgentOffering ao;
-        LinkedList<Travel> travList=new LinkedList<Travel>();
-        travList.add(new Travel(Travel.Destination.PARIS,532));
+        LinkedList<Travel> travList=new  LinkedList<Travel>();
+        travList.add(new Travel(Travel.Destination.PARIS,552));
         ao = new AgentOffering(travList);
         ab.init(AgentOffering.getAgentsOffering());
         ab.start();

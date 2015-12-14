@@ -44,7 +44,7 @@ public class AgentBuying extends Agent {
     AgentBuying(Travel.Destination dest, int price) {
         m_dest = dest;
         prixMax = price;
-        prixDep=prixMax/3;
+        prixDep=prixMax*0.6f;
         prixActuel=prixDep;
     }
 
@@ -52,13 +52,14 @@ public class AgentBuying extends Agent {
     
     @Override
     public void run() {
+        boolean endNegoc=false;
         LetterBox.getInstance().addAgent(this);
-        while(!m_satisfied){
+        while(!m_satisfied){    
             waitForAnOffer(); 
              Msg tosend = new Msg(this, m_currentNegociator, Msg.Request.ASK, prixActuel);
                                 LetterBox.getInstance().sendMessage(tosend);
                                   log("send new proposal"+prixActuel);
-            while (true) {
+            while (!endNegoc) {
                 Msg m = waitForMsg();
                 if(m.getEmitter()==m_currentNegociator){
                     log(m.getRequest().toString() + " received");
@@ -72,12 +73,17 @@ public class AgentBuying extends Agent {
                                 tosend = new Msg(this, m_currentNegociator, Msg.Request.ACCEPT, propFournisseur);
                                 LetterBox.getInstance().sendMessage(tosend);
                                 log("Accepted : proceed transaction !");
-                                this.destroy();
+                                m_satisfied=true;
+                                endNegoc=true;  
+                                Thread.currentThread().interrupt();     
                             } else if (quitTrade()) {
                                 tosend = new Msg(this, m_currentNegociator, Msg.Request.QUIT, null);
                                 LetterBox.getInstance().sendMessage(tosend);
                                   log("Stagnating, quitting transaction");
-                                this.destroy();
+                                  endNegoc=true;
+                                  m_satisfied=false;
+                                  Thread.currentThread().interrupt();
+                                
                             } else {
                                 tosend = new Msg(this, m_currentNegociator, Msg.Request.ASK, prixActuel);
                                 LetterBox.getInstance().sendMessage(tosend);
@@ -85,12 +91,15 @@ public class AgentBuying extends Agent {
                             }
                             break;
                         case ACCEPT:
-                            log("Accepted : proceed transaction !");
-                            this.destroy();
+                            log("Prop Accepted by the negociator : proceed transaction !");
+                           endNegoc=true;
+                            Thread.currentThread().interrupt();
+                         
                             break;
                          case QUIT:
                             log("Client quitted the transaction");
-                            this.destroy();
+                             Thread.currentThread().interrupt();
+                           endNegoc=true;
                             break;
                     }
                     m_oldPropFournisseur = this.propFournisseur;
@@ -106,12 +115,36 @@ public class AgentBuying extends Agent {
     
     @Override
     public void handleProposal(float prop) {
-   
-        prixActuel = prixActuel + prixDep / nbPropositions;
+       log("prix actuel :"+prixActuel);
+       if(prop>prixMax){
+             log("prop>prixMax");
+            prixActuel = prixActuel + prixDep / 3*nbPropositions;
+       }
+       else{ log("prop<prixMax");
+           if((new Random().nextInt(10)) >3){
+              prixActuel +=(prop-prixActuel)/8;
+               log("try to lower more");
+           }
+           else{
+                prixActuel = prixActuel + prixDep / 3*nbPropositions;
+           }
+       }
+        
         if (prixActuel > prixMax) {
             prixActuel = prixMax;
+           log("majoré par prixMax :"+prixActuel);
         }
         nbPropositions++;
+        
+              /*
+       
+        prixActuel = prixActuel + prixDep / 3*nbPropositions;
+        log("nouveau prix actuel "+prixActuel);
+        if (prixActuel > prixMax) {
+            prixActuel = prixMax;
+           log("majoré par prixMax :"+prixActuel);
+        }
+        */
     }
 
     public boolean acceptProp() {
